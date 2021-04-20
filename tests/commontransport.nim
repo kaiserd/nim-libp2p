@@ -29,7 +29,7 @@ proc commonTransportTest*(transportType: typedesc[Transport], ma: string) =
       let handlerWait = acceptHandler()
 
       let transport2: transportType = transportType.new(upgrade = Upgrade())
-      let conn = await transport2.dial(transport1.ma)
+      let conn = await transport2.dialStream(transport1.ma)
       var msg = newSeq[byte](6)
       await conn.readExactly(addr msg[0], 6)
 
@@ -56,7 +56,7 @@ proc commonTransportTest*(transportType: typedesc[Transport], ma: string) =
       let handlerWait = acceptHandler()
 
       let transport2: transportType = transportType.new(upgrade = Upgrade())
-      let conn = await transport2.dial(transport1.ma)
+      let conn = await transport2.dialStream(transport1.ma)
       await conn.write("Hello!")
 
       await conn.close() #for some protocols, closing requires actively, so we must close here
@@ -72,7 +72,7 @@ proc commonTransportTest*(transportType: typedesc[Transport], ma: string) =
       await transport1.start(ma)
 
       let transport2: transportType = transportType.new(upgrade = Upgrade())
-      let cancellation = transport2.dial(transport1.ma)
+      let cancellation = transport2.dialStream(transport1.ma)
 
       await cancellation.cancelAndWait()
       check cancellation.cancelled

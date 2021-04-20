@@ -254,7 +254,7 @@ method accept*(self: TcpTransport): Future[Session] {.async.} =
     warn "Unexpected error creating connection", exc = exc.msg
     raise exc
 
-method dial*(
+method dialStream*(
   self: TcpTransport,
   address: MultiAddress): Future[Connection] {.async, gcsafe.} =
   ## dial a peer
