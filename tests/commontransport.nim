@@ -22,7 +22,7 @@ proc commonTransportTest*(transportType: typedesc[Transport], ma: string) =
       await transport1.start(ma)
 
       proc acceptHandler() {.async, gcsafe.} =
-        let conn = await transport1.accept()
+        let conn = await transport1.acceptStream()
         await conn.write("Hello!")
         await conn.close()
 
@@ -47,7 +47,7 @@ proc commonTransportTest*(transportType: typedesc[Transport], ma: string) =
       asyncSpawn transport1.start(ma)
 
       proc acceptHandler() {.async, gcsafe.} =
-        let conn = await transport1.accept()
+        let conn = await transport1.acceptStream()
         var msg = newSeq[byte](6)
         await conn.readExactly(addr msg[0], 6)
         check string.fromBytes(msg) == "Hello!"
@@ -86,7 +86,7 @@ proc commonTransportTest*(transportType: typedesc[Transport], ma: string) =
       let transport1: transportType = transportType.new(upgrade = Upgrade())
       await transport1.start(ma)
 
-      let acceptHandler = transport1.accept()
+      let acceptHandler = transport1.acceptStream()
       await acceptHandler.cancelAndWait()
       check acceptHandler.cancelled
 
