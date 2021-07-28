@@ -15,7 +15,7 @@ suite "AsyncSemaphore":
     await sema.acquire()
     await sema.acquire()
 
-    check sema.count == 0
+    check sema.count == 3
 
   asyncTest "should release":
     let sema = newAsyncSemaphore(3)
@@ -24,11 +24,11 @@ suite "AsyncSemaphore":
     await sema.acquire()
     await sema.acquire()
 
-    check sema.count == 0
-    sema.release()
-    sema.release()
-    sema.release()
     check sema.count == 3
+    sema.release()
+    sema.release()
+    sema.release()
+    check sema.count == 0
 
   asyncTest "should queue acquire":
     let sema = newAsyncSemaphore(1)
@@ -36,20 +36,20 @@ suite "AsyncSemaphore":
     await sema.acquire()
     let fut = sema.acquire()
 
-    check sema.count == -1
-    sema.release()
-    sema.release()
     check sema.count == 1
+    sema.release()
 
-    await sleepAsync(10.millis)
-    check fut.finished()
+    await fut
+    check sema.count == 1
+    sema.release()
+    check sema.count == 0
 
-  asyncTest "should keep count == size":
+  asyncTest "should keep count >= 0":
     let sema = newAsyncSemaphore(1)
     sema.release()
     sema.release()
     sema.release()
-    check sema.count == 1
+    check sema.count == 0
 
   asyncTest "should tryAcquire":
     let sema = newAsyncSemaphore(1)
@@ -62,11 +62,11 @@ suite "AsyncSemaphore":
     check sema.tryAcquire() == true
     check sema.tryAcquire() == true
     check sema.tryAcquire() == true
-    check sema.count == 0
+    check sema.count == 4
 
     let fut = sema.acquire()
     check fut.finished == false
-    check sema.count == -1
+    check sema.count == 4
 
     sema.release()
     sema.release()
@@ -75,7 +75,7 @@ suite "AsyncSemaphore":
     sema.release()
 
     check fut.finished == true
-    check sema.count == 4
+    check sema.count == 0
 
   asyncTest "should restrict resource access":
     let sema = newAsyncSemaphore(3)
@@ -145,3 +145,28 @@ suite "AsyncSemaphore":
     sema.release()
 
     check await sema.acquire().withTimeout(10.millis)
+
+  asyncTest "should allow to resize the semaphore":
+    let sema = newAsyncSemaphore(2)
+    check sema.tryAcquire() == true
+    sema.setSize(1)
+    check sema.tryAcquire() == false
+
+    let
+      tmp1 = sema.acquire() # 1nd acquire
+      tmp2 = sema.acquire() # 2nd acquire
+
+    sema.setSize(2)
+    check tmp1.finished()
+    check not tmp2.finished()
+
+    sema.setSize(3)
+    check tmp2.finished()
+
+    let tmp3 = sema.acquire() # acquire
+    sema.setSize(2)
+    sema.release()
+
+    check not tmp3.finished()
+    sema.release()
+    check tmp3.finished()
